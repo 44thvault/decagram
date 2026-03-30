@@ -233,8 +233,12 @@ export default function App(){
         {phase==="casting_iching"&&<div style={{textAlign:"center",padding:"10px 0",animation:"fadeIn .3s ease-out"}}>
           {question&&<div style={{fontSize:10,color:"#0c8",padding:"6px 12px",border:`1px solid ${G}15`,borderRadius:2,background:"rgba(0,255,51,.02)",maxWidth:440,margin:"0 auto 12px"}}>"{question.length>60?question.slice(0,60)+"...":question}"</div>}
           <div style={{fontSize:9,color:G,letterSpacing:4,marginBottom:6}}>易經 I CHING — LINE {hexThrow+1} OF 6</div>
-          <div style={{display:"flex",justifyContent:"center",gap:8,margin:"10px 0"}}>
-            {[0,1,2].map(i=><Coin3D key={i} result={hexCoins[hexThrow]?.coins[i]} spinning={hexSpinning} delay={i*120} size={52}/>)}
+          <div style={{display:"flex",justifyContent:"center",gap:10,margin:"10px 0"}}>
+            {[0,1,2].map(i=>{
+              const latestResult=hexCoins.length>0?hexCoins[hexCoins.length-1]:null;
+              const coinVal=latestResult?.coins[i];
+              return <Coin3D key={`${hexThrow}-${i}`} result={coinVal} spinning={hexSpinning} delay={i*150} size={54}/>
+            })}
           </div>
           {hexCoins.length>0&&<div style={{fontSize:10,color:hexCoins[hexCoins.length-1]?.changing?P:G,letterSpacing:2,margin:"4px 0 8px"}}>{lineLabels[hexCoins.length-1]} → {lineTypes[hexCoins[hexCoins.length-1]?.lineType]}{hexCoins[hexCoins.length-1]?.changing?" ⚡":"" }</div>}
           <div style={{margin:"8px auto",padding:"10px 0",border:`1px solid ${G}15`,borderRadius:2,background:"rgba(0,0,0,.4)",width:"fit-content"}}>
@@ -248,8 +252,24 @@ export default function App(){
         {/* CASTING THC */}
         {phase==="casting_thc"&&<div style={{textAlign:"center",padding:"10px 0",animation:"fadeIn .3s ease-out"}}>
           <div style={{fontSize:9,color:C,letterSpacing:4,marginBottom:6}}>太玄經 T'AI HSÜAN CHING — LINE {tetThrow+1} OF 4</div>
-          <div style={{display:"flex",justifyContent:"center",gap:8,margin:"10px 0"}}>
-            {[0,1,2,3].map(i=><Coin3D key={i} result={tetCoins[tetThrow]?1:null} spinning={tetSpinning} delay={i*100} size={44}/>)}
+          <div style={{display:"flex",justifyContent:"center",gap:10,margin:"10px 0"}}>
+            {[0,1,2,3].map(i=>{
+              // THC throws 2 pairs of coins. We simulate 4 coin flips visually.
+              // The sum determines the line, but we show individual coin faces.
+              // Generate deterministic per-coin results from the throw sum
+              const latestResult=tetCoins.length>0?tetCoins[tetCoins.length-1]:null;
+              let coinVal=null;
+              if(latestResult){
+                // sum=2: both pairs had 1 head each → show H,T,H,T
+                // sum=3: one pair had 2 heads → show H,H,H,T or H,T,H,H
+                // sum=4: both pairs had 2 heads → show H,H,H,H
+                const s=latestResult.sum;
+                if(s===2) coinVal=i%2===0?1:0;
+                else if(s===3) coinVal=i<3?1:0;
+                else coinVal=1;// s===4, all heads
+              }
+              return <Coin3D key={`t${tetThrow}-${i}`} result={coinVal} spinning={tetSpinning} delay={i*120} size={46}/>
+            })}
           </div>
           {tetCoins.length>0&&<div style={{fontSize:10,color:C,letterSpacing:2,margin:"4px 0 8px"}}>{tetCoins[tetCoins.length-1]?.label}</div>}
           <div style={{display:"flex",gap:16,justifyContent:"center",margin:"8px auto"}}>
@@ -297,7 +317,7 @@ export default function App(){
           <div style={{display:"flex",justifyContent:"center",gap:0,marginBottom:16}}>
             {[["易經 TEMPORAL",G],["太玄經 CRYPTIC",C],["十線圖 DECAGRAM",A]].map(([label,col],i)=>{
               const active=activeTab===i;
-              return <button key={i} onClick={()=>setActiveTab(i)} style={{padding:"10px 16px",background:active?"rgba(0,0,0,.8)":"rgba(0,0,0,.6)",border:`1px solid ${active?col:col+"44"}`,borderRight:i<2?"none":undefined,color:active?col:col+"66",fontFamily:"monospace",fontSize:"clamp(8px,2.2vw,10px)",letterSpacing:2,cursor:"pointer",borderRadius:i===0?"2px 0 0 2px":i===2?"0 2px 2px 0":"0",transition:"all .3s",boxShadow:active?`0 0 8px ${col}22,inset 0 0 12px ${col}08`:"none"}}>{label}</button>
+              return <button key={i} onClick={()=>setActiveTab(i)} style={{padding:"10px 16px",background:active?`${col}15`:"transparent",border:`1px solid ${active?col:"#333"}`,borderRight:i<2?"none":undefined,color:active?col:"#555",fontFamily:"monospace",fontSize:"clamp(8px,2.2vw,10px)",letterSpacing:2,cursor:"pointer",borderRadius:i===0?"2px 0 0 2px":i===2?"0 2px 2px 0":"0",transition:"all .3s",boxShadow:active?`0 0 12px ${col}33,inset 0 0 16px ${col}11`:"none",textShadow:active?`0 0 8px ${col}`:"none"}}>{label}</button>
             })}
           </div>
 
