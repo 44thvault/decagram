@@ -7,8 +7,7 @@ import { PATHS } from "./paths.js";
 
 const G="#0f3",P="#b44aff",PD="#7a2db8",C="#00e5ff",A="#ffb800",AD="#b38600";
 
-// ── PARTICLE CANVAS ──
-function Particles(){const r=useRef();useEffect(()=>{const c=r.current;if(!c)return;const x=c.getContext("2d");let w=c.width=innerWidth,h=c.height=innerHeight;const ps=Array.from({length:40},()=>({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5}));let f;const d=()=>{x.clearRect(0,0,w,h);x.fillStyle=G;ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=w;if(p.x>w)p.x=0;if(p.y<0)p.y=h;if(p.y>h)p.y=0;x.globalAlpha=.3;x.beginPath();x.arc(p.x,p.y,p.r,0,Math.PI*2);x.fill()});x.strokeStyle=G;x.lineWidth=.3;for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++){const dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<120){x.globalAlpha=(1-dist/120)*.12;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.stroke()}}f=requestAnimationFrame(d)};d();const rs=()=>{w=c.width=innerWidth;h=c.height=innerHeight};addEventListener("resize",rs);return()=>{cancelAnimationFrame(f);removeEventListener("resize",rs)}},[]);return <canvas ref={r} style={{position:"fixed",top:0,left:0,width:"100%",height:"100%",zIndex:0,pointerEvents:"none"}}/>}
+// ── BACKGROUND: pure black, no particles ──
 
 // ── CSS COIN (realistic 3D flip) ──
 function Coin3D({result,spinning,delay=0,size=58,showVal=true}){
@@ -19,64 +18,44 @@ function Coin3D({result,spinning,delay=0,size=58,showVal=true}){
     const to=setTimeout(()=>{clearInterval(iv);setDone(true);setPulse(true);setTimeout(()=>setPulse(false),400)},dur);
     return()=>{clearInterval(iv);clearTimeout(to)}},[spinning,delay]);
   const isHeads=result===3||result===1;
-  const rot=done?0:tick*43;const face=done?isHeads:Math.floor(rot/180)%2===0;
-  // Coin has two visual faces, edge thickness, metallic sheen
-  const headGrad="radial-gradient(circle at 38% 32%,#f0d080 0%,#c9a030 25%,#8b6914 55%,#5a4208 85%,#3a2a04 100%)";
-  const tailGrad="radial-gradient(circle at 38% 32%,#c0c0c0 0%,#888888 25%,#555555 55%,#333333 85%,#1a1a1a 100%)";
-  const edgeGrad=face?"linear-gradient(180deg,#c9a030,#5a4208)":"linear-gradient(180deg,#888,#333)";
-  const scaleX=done?1:Math.abs(Math.cos(rot*Math.PI/180));
+  const spinRot=tick*43;
+  // Final: heads face forward (0deg), tails face forward (180deg)
+  const finalRot=done?(isHeads?360:540):spinRot;
+  const bfv={WebkitBackfaceVisibility:"hidden",backfaceVisibility:"hidden"};
   return(
-    <div style={{width:size,height:size+6,perspective:400,display:"inline-flex",flexDirection:"column",alignItems:"center",gap:2}}>
-      {/* Coin body */}
-      <div style={{width:size,height:size,position:"relative",transformStyle:"preserve-3d",
-        transform:`rotateY(${done?0:rot}deg) ${pulse?"scale(1.12)":"scale(1)"}`,
-        transition:done?"transform 0.5s cubic-bezier(.17,.67,.35,1.2)":"none",
-        filter:spinning&&!done?`blur(${Math.max(0,1.5-scaleX*2)}px)`:"none",
-      }}>
-        {/* Front face */}
-        <div style={{position:"absolute",width:"100%",height:"100%",borderRadius:"50%",
-          background:headGrad,
-          border:"2px solid #c9a03088",
-          boxShadow:done&&isHeads?`0 0 16px ${G}44,0 0 32px ${G}22,inset 0 2px 4px rgba(255,255,255,.2),inset 0 -2px 4px rgba(0,0,0,.3)`
-            :`inset 0 2px 4px rgba(255,255,255,.15),inset 0 -2px 4px rgba(0,0,0,.25)`,
-          backfaceVisibility:"hidden",
-          display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",
+    <div style={{width:size,height:size+10,display:"inline-flex",flexDirection:"column",alignItems:"center",gap:3}}>
+      <div style={{width:size,height:size,perspective:600}}>
+        <div style={{width:"100%",height:"100%",position:"relative",transformStyle:"preserve-3d",
+          transform:`rotateY(${finalRot}deg)${pulse?" scale(1.15)":""}`,
+          transition:done?"transform 0.6s cubic-bezier(.17,.67,.35,1.2)":"none",
         }}>
-          <span style={{fontSize:size*.3,color:"#3a2a04",textShadow:"0 1px 0 rgba(255,255,255,.2)",lineHeight:1}}>☰</span>
-          <span style={{fontSize:size*.12,color:"#5a420888",letterSpacing:1,marginTop:1,fontFamily:"monospace"}}>YANG</span>
-          {/* Inner ring emboss */}
-          <div style={{position:"absolute",width:"78%",height:"78%",borderRadius:"50%",border:"1px solid rgba(255,255,255,.08)",top:"11%",left:"11%",pointerEvents:"none"}}/>
-          <div style={{position:"absolute",width:"88%",height:"88%",borderRadius:"50%",border:"1px solid rgba(0,0,0,.15)",top:"6%",left:"6%",pointerEvents:"none"}}/>
+          {/* HEADS (front face) */}
+          <div style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",borderRadius:"50%",...bfv,
+            background:"radial-gradient(circle at 38% 30%,#f0d080,#c9a030 25%,#8b6914 55%,#5a4208 85%,#3a2a04)",
+            border:"2px solid #c9a03088",
+            boxShadow:done&&isHeads?`0 0 18px ${G}55,inset 0 2px 4px rgba(255,255,255,.2),inset 0 -2px 4px rgba(0,0,0,.3)`:"inset 0 2px 3px rgba(255,255,255,.15),inset 0 -2px 3px rgba(0,0,0,.25)",
+            display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",
+          }}>
+            <span style={{fontSize:size*.34,color:"#3a2a04",textShadow:"0 1px 0 rgba(255,255,255,.15)",lineHeight:1}}>☰</span>
+            <span style={{fontSize:size*.1,color:"#5a420855",letterSpacing:1,marginTop:2,fontFamily:"monospace"}}>YANG</span>
+            <div style={{position:"absolute",width:"82%",height:"82%",borderRadius:"50%",border:"1px solid rgba(255,255,255,.06)",top:"9%",left:"9%",pointerEvents:"none"}}/>
+          </div>
+          {/* TAILS (back face — pre-rotated 180deg) */}
+          <div style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",borderRadius:"50%",...bfv,
+            transform:"rotateY(180deg)",
+            background:"radial-gradient(circle at 38% 30%,#aaa,#777 25%,#444 55%,#222 85%,#111)",
+            border:"2px solid #55555555",
+            boxShadow:done&&!isHeads?`0 0 12px #88888855,inset 0 2px 3px rgba(255,255,255,.1),inset 0 -2px 3px rgba(0,0,0,.3)`:"inset 0 2px 3px rgba(255,255,255,.08),inset 0 -2px 3px rgba(0,0,0,.2)",
+            display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",
+          }}>
+            <span style={{fontSize:size*.34,color:"#777",textShadow:"0 1px 0 rgba(255,255,255,.06)",lineHeight:1}}>☷</span>
+            <span style={{fontSize:size*.1,color:"#55555555",letterSpacing:1,marginTop:2,fontFamily:"monospace"}}>YIN</span>
+            <div style={{position:"absolute",width:"82%",height:"82%",borderRadius:"50%",border:"1px solid rgba(255,255,255,.03)",top:"9%",left:"9%",pointerEvents:"none"}}/>
+          </div>
         </div>
-        {/* Back face */}
-        <div style={{position:"absolute",width:"100%",height:"100%",borderRadius:"50%",
-          background:tailGrad,
-          border:"2px solid #66666644",
-          boxShadow:done&&!isHeads?`0 0 12px #88888844,inset 0 2px 4px rgba(255,255,255,.12),inset 0 -2px 4px rgba(0,0,0,.3)`
-            :`inset 0 2px 4px rgba(255,255,255,.1),inset 0 -2px 4px rgba(0,0,0,.2)`,
-          backfaceVisibility:"hidden",transform:"rotateY(180deg)",
-          display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",
-        }}>
-          <span style={{fontSize:size*.3,color:"#1a1a1a",textShadow:"0 1px 0 rgba(255,255,255,.1)",lineHeight:1}}>☷</span>
-          <span style={{fontSize:size*.12,color:"#44444488",letterSpacing:1,marginTop:1,fontFamily:"monospace"}}>YIN</span>
-          <div style={{position:"absolute",width:"78%",height:"78%",borderRadius:"50%",border:"1px solid rgba(255,255,255,.05)",top:"11%",left:"11%",pointerEvents:"none"}}/>
-          <div style={{position:"absolute",width:"88%",height:"88%",borderRadius:"50%",border:"1px solid rgba(0,0,0,.1)",top:"6%",left:"6%",pointerEvents:"none"}}/>
-        </div>
-        {/* Edge (visible when coin is sideways) */}
-        <div style={{position:"absolute",width:4,height:"100%",left:"50%",marginLeft:-2,
-          background:edgeGrad,borderRadius:2,
-          transform:`scaleX(${Math.max(.1,1-scaleX)})`,
-          opacity:spinning&&!done?.6:0,pointerEvents:"none",
-        }}/>
-        {/* Landing glow burst */}
-        {pulse&&<div style={{position:"absolute",width:"140%",height:"140%",top:"-20%",left:"-20%",borderRadius:"50%",
-          background:`radial-gradient(circle,${isHeads?G+"33":"#88888833"} 0%,transparent 70%)`,
-          animation:"fadeIn .3s ease-out",pointerEvents:"none"
-        }}/>}
       </div>
-      {/* Value display under coin */}
-      {showVal&&done&&<div style={{fontSize:9,color:done?(isHeads?G:"#888"):"transparent",fontFamily:"monospace",letterSpacing:1,textShadow:isHeads?`0 0 4px ${G}`:"none",transition:"all .3s",textAlign:"center"}}>
-        {result===3?"3":result===2?"2":isHeads?"H":"T"}
+      {showVal&&done&&<div style={{fontSize:8,color:isHeads?G:"#888",fontFamily:"monospace",letterSpacing:1,textShadow:isHeads?`0 0 4px ${G}`:"none",textAlign:"center"}}>
+        {result===3?"3 ☰":result===2?"2 ☷":isHeads?"H":"T"}
       </div>}
     </div>
   );
@@ -108,6 +87,21 @@ export default function App(){
   // Decagram state
   const[decagram,setDecagram]=useState(null);const[showReading,setShowReading]=useState(false);
   const[activeTab,setActiveTab]=useState(0);// 0=iching,1=thc,2=decagram
+  // Reading history (max 9)
+  const[history,setHistory]=useState([]);
+  const[viewingHistory,setViewingHistory]=useState(null);// index into history or null
+
+  const saveToHistory=(q,hex,rel,tet,dec,hLines,tLines)=>{
+    const entry={question:q,hexagram:hex,relatingHex:rel,tetragram:tet,decagram:dec,hexLines:hLines,tetLines:tLines,timestamp:Date.now()};
+    setHistory(prev=>[entry,...prev].slice(0,9));
+  };
+
+  const loadFromHistory=(idx)=>{
+    const e=history[idx];if(!e)return;
+    setViewingHistory(idx);setQuestion(e.question);setHexagram(e.hexagram);setRelHex(e.relatingHex);
+    setTetragram(e.tetragram);setDecagram(e.decagram);setHexLines(e.hexLines||[]);setTetLines(e.tetLines||[]);
+    setPhase("reading");setShowReading(true);setActiveTab(0);
+  };
 
   useEffect(()=>{const iv=setInterval(()=>{setGlitch(true);setTimeout(()=>setGlitch(false),100+Math.random()*150)},4000+Math.random()*6000);return()=>clearInterval(iv)},[]);
 
@@ -142,7 +136,14 @@ export default function App(){
           const dm=mapDecagram(hResults,tResults);
           const activeSet=new Set(dm.hotZones.filter(z=>z.intensity>=2).map(z=>z.zone));
           const demons=findDemonsByZones(activeSet);
-          setDecagram({...dm,demons,primaryDemon:demons[0]||null});
+          const dm2={...dm,demons,primaryDemon:demons[0]||null};
+          setDecagram(dm2);
+          setViewingHistory(null);
+          // Save to history
+          const hex2=lookupHexagram(hResults);
+          const rel2=hResults.some(l=>l.changing)?lookupHexagram(hResults.map(l=>({...l,yang:l.changing?!l.yang:l.yang,changing:false}))):null;
+          const tet2=lookupTHC(tResults.map(r=>r.value));
+          saveToHistory(question,hex2,rel2,tet2,dm2,[...hResults],[...tResults]);
           setPhase("reading");setTimeout(()=>setShowReading(true),600);
         },600);
         return;
@@ -162,7 +163,7 @@ export default function App(){
     <div style={{minHeight:"100vh",background:"#000",color:G,fontFamily:"'Courier New','Lucida Console',monospace",position:"relative",overflow:"hidden"}}>
       <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:1,pointerEvents:"none",background:"repeating-linear-gradient(0deg,rgba(0,0,0,.08) 0px,rgba(0,0,0,.08) 1px,transparent 1px,transparent 3px)"}}/>
       <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:1,pointerEvents:"none",background:"radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.6) 100%)"}}/>
-      <Particles/>
+      {/* pure black background — no particles */}
       <div style={{position:"relative",zIndex:2,maxWidth:620,margin:"0 auto",padding:"20px 16px"}}>
 
         {/* HEADER */}
@@ -182,6 +183,41 @@ export default function App(){
           <Col title="WHAT IS THE NUMOGRAM?" color={A}><p style={{margin:"0 0 10px"}}>The CCRU <strong style={{color:A}}>Decimal Labyrinth</strong>: 10 zones (0-9), grouped into 5 syzygies by 9-sum twinning. Three time-systems: the <strong style={{color:G}}>Time-Circuit</strong> (zones 1,2,4,5,7,8 — what the I Ching reads), the <strong style={{color:C}}>Warp</strong> (zones 3,6), and the <strong style={{color:C}}>Plex</strong> (zones 0,9). 45 demons of the Pandemonium Matrix inhabit the zone-pairs. 84 paths from the <em>Book of Paths</em> trace routes through the labyrinth.</p><p style={{margin:0,fontSize:"clamp(11px,3vw,13px)",color:"#0c8"}}>"There is considerable evidence, both immanent and historical, that the Chinese I Ching and the Nma numogram share a hypercultural matrix." — CCRU, Decimal Labyrinth</p></Col>
           <Col title="THE BOOK OF PATHS" color={A}><p style={{margin:"0 0 10px"}}>The <strong style={{color:A}}>Book of Paths</strong> is an ancient oracular text translated from Tibetan by <strong style={{color:A}}>Chaim Horowitz</strong> and sent to Peter Vysparov in 1949. Vysparov mapped its 84 paths onto the Pandemonium Matrix, discovering that each path corresponds to a specific demon rite — a zone-traversal sequence through the Numogram.</p><p style={{margin:"0 0 10px",fontStyle:"italic",color:"#0c8",borderLeft:`2px solid ${A}30`,paddingLeft:12}}>From Horowitz's letter to Vysparov (February 1949): "Here at last is a complete translation of the Old Book... Echidna [Stillwell] has been able to find some tantalizing traces of its history within Chinese sources dating back to the Warring States period, when it was already considered profoundly archaic, with more than one 'dark school' even suggesting that it preceded the I Ching."</p><p style={{margin:"0 0 10px",fontStyle:"italic",color:"#0c8",borderLeft:`2px solid ${A}30`,paddingLeft:12}}>"She has stumbled upon persistent rumours that a series of 84 bronze tablets were inexplicably removed from the Shu Kingdom excavation site by figures described variously as 'looters' or 'senior officials'."</p><p style={{margin:0,fontSize:"clamp(11px,3vw,13px)",color:"#0c8"}}>Source: Vysparov Library, via CCRU (2003). The Horowitz-Vysparov concordance and complete Book of Paths text are available at ccru.net.</p></Col>
           <Col title="HOW DOES THE MAPPING WORK?" color={A}><p style={{margin:"0 0 10px"}}>Digital reduction of binary powers: 1,2,4,8,16→7,32→5 — a 6-cycle mapping to hexagram lines AND Time-Circuit zones. Hexagram line-pairs map to syzygies via 9-twinning: 8:1 (Mur Mur), 7:2 (Oddubb), 5:4 (Katak).</p><p style={{margin:0}}>The THC's ternary system accesses zones 0,3,6,9 — the triadic residue the binary system excludes. Four tetragram lines map to four outer zones: 9 (top), 6, 3, 0 (bottom). The I Ching reads the Time-Circuit; the THC reads Warp/Plex; together they read the whole Numogram.</p></Col>
+
+          {/* READING LOG */}
+          {history.length>0&&<div style={{marginTop:8}}>
+            <div style={{fontSize:9,color:A,letterSpacing:4,marginBottom:10,textAlign:"center"}}>READING LOG ({history.length}/9)</div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {history.map((entry,idx)=>{
+                const d=new Date(entry.timestamp);
+                const time=d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+                const date=d.toLocaleDateString([],{month:"short",day:"numeric"});
+                const isViewing=viewingHistory===idx;
+                return <button key={idx} onClick={()=>loadFromHistory(idx)} style={{
+                  width:"100%",padding:"10px 14px",background:isViewing?"rgba(255,184,0,.06)":"rgba(0,0,0,.3)",
+                  border:`1px solid ${isViewing?A+"50":"#0f320"}`,borderRadius:2,cursor:"pointer",
+                  display:"flex",alignItems:"center",gap:10,textAlign:"left",
+                  fontFamily:"monospace",transition:"all .2s",
+                }}>
+                  <div style={{fontSize:8,color:"#0c8",minWidth:48,flexShrink:0,lineHeight:1.4}}>
+                    <div>{date}</div><div>{time}</div>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:10,color:isViewing?A:G,letterSpacing:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      {entry.question||"(no question)"}
+                    </div>
+                    <div style={{fontSize:8,color:"#0c8",marginTop:2,display:"flex",gap:8,flexWrap:"wrap"}}>
+                      <span style={{color:G}}>{entry.hexagram?.n}. {entry.hexagram?.name}</span>
+                      <span style={{color:C}}>{entry.tetragram?.n}. {entry.tetragram?.name}</span>
+                      {entry.decagram?.primaryDemon&&<span style={{color:A}}>{entry.decagram.primaryDemon.demon.name}</span>}
+                    </div>
+                  </div>
+                  <div style={{fontSize:10,color:"#0c8",flexShrink:0}}>→</div>
+                </button>
+              })}
+            </div>
+            <div style={{fontSize:8,color:"#0c8",textAlign:"center",marginTop:6,letterSpacing:2}}>TAP TO REVISIT ⌁ SESSION HISTORY</div>
+          </div>}
         </div>}
 
         {/* QUESTION */}
@@ -259,9 +295,10 @@ export default function App(){
           {/* Tab selector */}
           {showReading&&<>
           <div style={{display:"flex",justifyContent:"center",gap:0,marginBottom:16}}>
-            {[["易經 TEMPORAL",G],["太玄經 CRYPTIC",C],["十線圖 DECAGRAM",A]].map(([label,col],i)=>
-              <button key={i} onClick={()=>setActiveTab(i)} style={{padding:"8px 14px",background:activeTab===i?col+"15":"transparent",border:`1px solid ${activeTab===i?col:col+"30"}`,borderRight:i<2?"none":undefined,color:activeTab===i?col:col+"60",fontFamily:"monospace",fontSize:"clamp(8px,2.2vw,10px)",letterSpacing:2,cursor:"pointer",borderRadius:i===0?"2px 0 0 2px":i===2?"0 2px 2px 0":"0",transition:"all .3s"}}>{label}</button>
-            )}
+            {[["易經 TEMPORAL",G],["太玄經 CRYPTIC",C],["十線圖 DECAGRAM",A]].map(([label,col],i)=>{
+              const active=activeTab===i;
+              return <button key={i} onClick={()=>setActiveTab(i)} style={{padding:"10px 16px",background:active?"rgba(0,0,0,.8)":"rgba(0,0,0,.6)",border:`1px solid ${active?col:col+"44"}`,borderRight:i<2?"none":undefined,color:active?col:col+"66",fontFamily:"monospace",fontSize:"clamp(8px,2.2vw,10px)",letterSpacing:2,cursor:"pointer",borderRadius:i===0?"2px 0 0 2px":i===2?"0 2px 2px 0":"0",transition:"all .3s",boxShadow:active?`0 0 8px ${col}22,inset 0 0 12px ${col}08`:"none"}}>{label}</button>
+            })}
           </div>
 
           {/* TAB 0: I CHING READING */}
