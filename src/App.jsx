@@ -4,6 +4,7 @@ import { THC_TETRAGRAMS, throwTHCLine, lookupTHC } from "./thc.js";
 import { DEMONS, findDemonsByZones } from "./demons.js";
 import { SYZYGIES, ZONES, mapDecagram, HEXAGRAM_LINE_ZONES, TETRAGRAM_LINE_ZONES, LINE_PAIR_SYZYGIES } from "./numogram.js";
 import { PATHS } from "./paths.js";
+import { generateInterpretation } from "./interpretations.js";
 
 const G="#0f3",P="#b44aff",PD="#7a2db8",C="#00e5ff",A="#ffb800",AD="#b38600";
 
@@ -11,37 +12,61 @@ const G="#0f3",P="#b44aff",PD="#7a2db8",C="#00e5ff",A="#ffb800",AD="#b38600";
 
 // ── CSS COIN (realistic 3D flip) ──
 function Coin3D({result,spinning,delay=0,size=58,showVal=true}){
-  const[done,setDone]=useState(false);const[tick,setTick]=useState(0);
-  useEffect(()=>{if(!spinning){setDone(false);setTick(0);return}
-    const st=Date.now();const iv=setInterval(()=>{if(Date.now()-st<delay)return;setTick(t=>t+1)},40);
-    const dur=1300+delay+Math.random()*400;
-    const to=setTimeout(()=>{clearInterval(iv);setDone(true)},dur);
-    return()=>{clearInterval(iv);clearTimeout(to)}},[spinning,delay]);
+  const[phase,setPhase]=useState("idle");// idle|spinning|landed
+  const[tick,setTick]=useState(0);
+  const prevSpinning=useRef(false);
+
+  useEffect(()=>{
+    // Detect spin START (false→true transition)
+    if(spinning&&!prevSpinning.current){
+      setPhase("spinning");setTick(0);
+    }
+    prevSpinning.current=spinning;
+  },[spinning]);
+
+  // Spin animation
+  useEffect(()=>{
+    if(phase!=="spinning")return;
+    const iv=setInterval(()=>setTick(t=>t+1),40);
+    return()=>clearInterval(iv);
+  },[phase]);
+
+  // Land when result arrives and we were spinning
+  useEffect(()=>{
+    if(phase==="spinning"&&result!==null&&result!==undefined){
+      // Brief extra spin then land
+      const to=setTimeout(()=>setPhase("landed"),300+delay*0.3);
+      return()=>clearTimeout(to);
+    }
+  },[result,phase,delay]);
+
   const isHeads=result===3||result===1;
-  // During spin: alternate faces rapidly. When done: show final face.
-  const showHeadsFace=done?isHeads:(tick%2===0);
-  const wobble=spinning&&!done?Math.sin(tick*0.8)*8:0;
-  const squeeze=spinning&&!done?0.7+Math.abs(Math.sin(tick*0.5))*0.3:1;
+  const showGold=phase==="landed"?isHeads:phase==="spinning"?(tick%2===0):true;
+  const wobble=phase==="spinning"?Math.sin(tick*0.7)*10:0;
+  const squeeze=phase==="spinning"?0.65+Math.abs(Math.sin(tick*0.4))*0.35:1;
+
   return(
-    <div style={{width:size,height:size+12,display:"inline-flex",flexDirection:"column",alignItems:"center",gap:3}}>
+    <div style={{width:size,height:size+14,display:"inline-flex",flexDirection:"column",alignItems:"center",gap:3}}>
       <div style={{
         width:size,height:size,borderRadius:"50%",
-        transform:`rotate(${wobble}deg) scaleX(${squeeze})${done?" scale(1)":""}`,
-        transition:done?"transform 0.3s ease-out":"none",
-        background:showHeadsFace
+        transform:`rotate(${wobble}deg) scaleX(${squeeze})${phase==="landed"?" scale(1.08)":""}`,
+        transition:phase==="landed"?"transform 0.3s ease-out":"none",
+        background:showGold
           ?"radial-gradient(circle at 38% 30%,#f0d080,#c9a030 25%,#8b6914 55%,#5a4208 85%,#3a2a04)"
-          :"radial-gradient(circle at 38% 30%,#aaa,#777 25%,#444 55%,#222 85%,#111)",
-        border:`2px solid ${showHeadsFace?"#c9a03088":"#55555566"}`,
-        boxShadow:done?(isHeads?`0 0 18px ${G}44,inset 0 2px 3px rgba(255,255,255,.2),inset 0 -2px 3px rgba(0,0,0,.3)`:`0 0 10px #88888833,inset 0 2px 3px rgba(255,255,255,.1),inset 0 -2px 3px rgba(0,0,0,.3)`):"inset 0 2px 3px rgba(255,255,255,.1),inset 0 -2px 3px rgba(0,0,0,.2)",
+          :"radial-gradient(circle at 38% 30%,#b0b0b0,#777 25%,#444 55%,#222 85%,#111)",
+        border:`2px solid ${showGold?"#c9a03088":"#55555566"}`,
+        boxShadow:phase==="landed"
+          ?(isHeads?`0 0 20px ${G}55,inset 0 2px 3px rgba(255,255,255,.2),inset 0 -2px 3px rgba(0,0,0,.3)`
+                   :`0 0 14px #88888844,inset 0 2px 3px rgba(255,255,255,.12),inset 0 -2px 3px rgba(0,0,0,.3)`)
+          :"inset 0 2px 3px rgba(255,255,255,.1),inset 0 -2px 3px rgba(0,0,0,.2)",
         display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",
-        position:"relative",overflow:"hidden",
+        position:"relative",
       }}>
-        <span style={{fontSize:size*.34,color:showHeadsFace?"#3a2a04":"#777",textShadow:showHeadsFace?"0 1px 0 rgba(255,255,255,.15)":"0 1px 0 rgba(255,255,255,.05)",lineHeight:1}}>{showHeadsFace?"☰":"☷"}</span>
-        <span style={{fontSize:size*.1,color:showHeadsFace?"#5a420866":"#55555544",letterSpacing:1,marginTop:2,fontFamily:"monospace"}}>{showHeadsFace?"YANG":"YIN"}</span>
-        {/* Emboss ring */}
-        <div style={{position:"absolute",width:"82%",height:"82%",borderRadius:"50%",border:`1px solid rgba(${showHeadsFace?"255,255,255":"255,255,255"},.05)`,top:"9%",left:"9%",pointerEvents:"none"}}/>
+        <span style={{fontSize:size*.36,color:showGold?"#3a2a04":"#888",textShadow:showGold?"0 1px 0 rgba(255,255,255,.12)":"0 1px 0 rgba(255,255,255,.04)",lineHeight:1}}>{showGold?"☰":"☷"}</span>
+        <span style={{fontSize:size*.09,color:showGold?"#5a420866":"#55555555",letterSpacing:1,marginTop:2,fontFamily:"monospace"}}>{showGold?"YANG":"YIN"}</span>
+        <div style={{position:"absolute",width:"82%",height:"82%",borderRadius:"50%",border:"1px solid rgba(255,255,255,.04)",top:"9%",left:"9%",pointerEvents:"none"}}/>
       </div>
-      {showVal&&done&&<div style={{fontSize:9,color:isHeads?G:"#999",fontFamily:"monospace",letterSpacing:1,textShadow:isHeads?`0 0 4px ${G}`:"none",textAlign:"center"}}>
+      {showVal&&phase==="landed"&&<div style={{fontSize:9,color:isHeads?G:"#999",fontFamily:"monospace",letterSpacing:1,textShadow:isHeads?`0 0 4px ${G}`:"none",textAlign:"center",animation:"fadeIn .3s ease-out"}}>
         {result===3?"3 ☰":result===2?"2 ☷":isHeads?"H":"T"}
       </div>}
     </div>
@@ -460,6 +485,12 @@ export default function App(){
                   <div style={{fontSize:10,color:"#0c8",marginTop:2}}>{decagram.primaryDemon.isSyzygetic?"Syzygetic junction — both poles activated":"Coverage: "+Math.round(decagram.primaryDemon.coverage*100)+"% of route through active zones"}</div>
                 </div>
               </div>})()}
+
+              {/* Full Demon Interpretation */}
+              {decagram.primaryDemon&&<div style={{margin:"12px 0",padding:"18px",borderLeft:`3px solid ${A}`,background:"rgba(255,184,0,.02)"}}>
+                <div style={{fontSize:10,color:A,letterSpacing:4,marginBottom:10}}>◈ FULL INTERPRETATION ◈</div>
+                <div style={{fontSize:"clamp(15px,4vw,18px)",lineHeight:2.1,color:"#e8d4b0"}}>{generateInterpretation(decagram.primaryDemon.demon)}</div>
+              </div>}
 
               {/* Book of Paths reading */}
               {decagram.primaryDemon?.rite.path&&PATHS[decagram.primaryDemon.rite.path]&&<div style={{margin:"12px 0",padding:"16px",borderLeft:`3px solid ${A}60`,background:"rgba(255,184,0,.015)"}}>
