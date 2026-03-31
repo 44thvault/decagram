@@ -24,26 +24,25 @@ function Coin3D({result,spinning,delay=0,size=58,showVal=true}){
     prevSpinning.current=spinning;
   },[spinning]);
 
-  // Spin animation
+  // Spin animation — gentle tumble
   useEffect(()=>{
     if(phase!=="spinning")return;
-    const iv=setInterval(()=>setTick(t=>t+1),40);
+    const iv=setInterval(()=>setTick(t=>t+1),180);
     return()=>clearInterval(iv);
   },[phase]);
 
   // Land when result arrives and we were spinning
   useEffect(()=>{
     if(phase==="spinning"&&result!==null&&result!==undefined){
-      // Brief extra spin then land
-      const to=setTimeout(()=>setPhase("landed"),300+delay*0.3);
+      const to=setTimeout(()=>setPhase("landed"),500+delay*0.15);
       return()=>clearTimeout(to);
     }
   },[result,phase,delay]);
 
   const isHeads=result===3||result===1;
-  const showGold=phase==="landed"?isHeads:phase==="spinning"?(tick%2===0):true;
-  const wobble=phase==="spinning"?Math.sin(tick*0.7)*10:0;
-  const squeeze=phase==="spinning"?0.65+Math.abs(Math.sin(tick*0.4))*0.35:1;
+  const showGold=phase==="landed"?isHeads:phase==="spinning"?(Math.floor(tick/2)%2===0):true;
+  const wobble=phase==="spinning"?Math.sin(tick*0.4)*5:0;
+  const squeeze=phase==="spinning"?0.78+Math.abs(Math.sin(tick*0.25))*0.22:1;
 
   return(
     <div style={{width:size,height:size+14,display:"inline-flex",flexDirection:"column",alignItems:"center",gap:3}}>
@@ -144,21 +143,21 @@ export default function App(){
     const doTet=()=>{
       if(idx>=4){
         const tet=lookupTHC(tResults.map(r=>r.value));setTetragram(tet);
-        setTimeout(()=>{
-          // Compute Decagram
-          const dm=mapDecagram(hResults,tResults);
-          const activeSet=new Set(dm.hotZones.filter(z=>z.intensity>=2).map(z=>z.zone));
-          const demons=findDemonsByZones(activeSet);
-          const dm2={...dm,demons,primaryDemon:demons[0]||null};
-          setDecagram(dm2);
-          setViewingHistory(null);
-          // Save to history
-          const hex2=lookupHexagram(hResults);
-          const rel2=hResults.some(l=>l.changing)?lookupHexagram(hResults.map(l=>({...l,yang:l.changing?!l.yang:l.yang,changing:false}))):null;
-          const tet2=lookupTHC(tResults.map(r=>r.value));
-          saveToHistory(questionRef.current,hex2,rel2,tet2,dm2,[...hResults],[...tResults]);
-          setShowReading(true);setPhase("reading");
-        },600);
+        // Compute Decagram — no delay, go straight to reading
+        const dm=mapDecagram(hResults,tResults);
+        const activeSet=new Set(dm.hotZones.filter(z=>z.intensity>=2).map(z=>z.zone));
+        const demons=findDemonsByZones(activeSet);
+        const dm2={...dm,demons,primaryDemon:demons[0]||null};
+        setDecagram(dm2);
+        setViewingHistory(null);
+        const hex2=lookupHexagram(hResults);
+        const rel2=hResults.some(l=>l.changing)?lookupHexagram(hResults.map(l=>({...l,yang:l.changing?!l.yang:l.yang,changing:false}))):null;
+        const tet2=lookupTHC(tResults.map(r=>r.value));
+        saveToHistory(questionRef.current,hex2,rel2,tet2,dm2,[...hResults],[...tResults]);
+        setHexLines([...hResults]);
+        setTetLines([...tResults]);
+        setShowReading(true);
+        setPhase("reading");
         return;
       }
       setTetThrow(idx);setTetSpinning(true);
@@ -326,7 +325,7 @@ export default function App(){
           </div>
 
           {/* Tab selector */}
-          {showReading&&<>
+          {<>
           <div style={{display:"flex",justifyContent:"center",gap:0,marginBottom:16}}>
             {[["易經 TEMPORAL",G],["太玄經 CRYPTIC",C],["十線圖 DECAGRAM",A]].map(([label,col],i)=>{
               const active=activeTab===i;
