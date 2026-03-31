@@ -11,50 +11,37 @@ const G="#0f3",P="#b44aff",PD="#7a2db8",C="#00e5ff",A="#ffb800",AD="#b38600";
 
 // ── CSS COIN (realistic 3D flip) ──
 function Coin3D({result,spinning,delay=0,size=58,showVal=true}){
-  const[done,setDone]=useState(false);const[tick,setTick]=useState(0);const[pulse,setPulse]=useState(false);
-  useEffect(()=>{if(!spinning){setDone(false);setTick(0);setPulse(false);return}
-    const st=Date.now();const iv=setInterval(()=>{if(Date.now()-st<delay)return;setTick(t=>t+1)},50);
-    const dur=1400+delay+Math.random()*500;
-    const to=setTimeout(()=>{clearInterval(iv);setDone(true);setPulse(true);setTimeout(()=>setPulse(false),400)},dur);
+  const[done,setDone]=useState(false);const[tick,setTick]=useState(0);
+  useEffect(()=>{if(!spinning){setDone(false);setTick(0);return}
+    const st=Date.now();const iv=setInterval(()=>{if(Date.now()-st<delay)return;setTick(t=>t+1)},40);
+    const dur=1300+delay+Math.random()*400;
+    const to=setTimeout(()=>{clearInterval(iv);setDone(true)},dur);
     return()=>{clearInterval(iv);clearTimeout(to)}},[spinning,delay]);
   const isHeads=result===3||result===1;
-  const spinRot=tick*43;
-  // Final: heads face forward (0deg), tails face forward (180deg)
-  const finalRot=done?(isHeads?360:540):spinRot;
-  const bfv={WebkitBackfaceVisibility:"hidden",backfaceVisibility:"hidden"};
+  // During spin: alternate faces rapidly. When done: show final face.
+  const showHeadsFace=done?isHeads:(tick%2===0);
+  const wobble=spinning&&!done?Math.sin(tick*0.8)*8:0;
+  const squeeze=spinning&&!done?0.7+Math.abs(Math.sin(tick*0.5))*0.3:1;
   return(
-    <div style={{width:size,height:size+10,display:"inline-flex",flexDirection:"column",alignItems:"center",gap:3}}>
-      <div style={{width:size,height:size,perspective:600}}>
-        <div style={{width:"100%",height:"100%",position:"relative",transformStyle:"preserve-3d",
-          transform:`rotateY(${finalRot}deg)${pulse?" scale(1.15)":""}`,
-          transition:done?"transform 0.6s cubic-bezier(.17,.67,.35,1.2)":"none",
-        }}>
-          {/* HEADS (front face) */}
-          <div style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",borderRadius:"50%",...bfv,
-            background:"radial-gradient(circle at 38% 30%,#f0d080,#c9a030 25%,#8b6914 55%,#5a4208 85%,#3a2a04)",
-            border:"2px solid #c9a03088",
-            boxShadow:done&&isHeads?`0 0 18px ${G}55,inset 0 2px 4px rgba(255,255,255,.2),inset 0 -2px 4px rgba(0,0,0,.3)`:"inset 0 2px 3px rgba(255,255,255,.15),inset 0 -2px 3px rgba(0,0,0,.25)",
-            display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",
-          }}>
-            <span style={{fontSize:size*.34,color:"#3a2a04",textShadow:"0 1px 0 rgba(255,255,255,.15)",lineHeight:1}}>☰</span>
-            <span style={{fontSize:size*.1,color:"#5a420855",letterSpacing:1,marginTop:2,fontFamily:"monospace"}}>YANG</span>
-            <div style={{position:"absolute",width:"82%",height:"82%",borderRadius:"50%",border:"1px solid rgba(255,255,255,.06)",top:"9%",left:"9%",pointerEvents:"none"}}/>
-          </div>
-          {/* TAILS (back face — pre-rotated 180deg) */}
-          <div style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",borderRadius:"50%",...bfv,
-            transform:"rotateY(180deg)",
-            background:"radial-gradient(circle at 38% 30%,#aaa,#777 25%,#444 55%,#222 85%,#111)",
-            border:"2px solid #55555555",
-            boxShadow:done&&!isHeads?`0 0 12px #88888855,inset 0 2px 3px rgba(255,255,255,.1),inset 0 -2px 3px rgba(0,0,0,.3)`:"inset 0 2px 3px rgba(255,255,255,.08),inset 0 -2px 3px rgba(0,0,0,.2)",
-            display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",
-          }}>
-            <span style={{fontSize:size*.34,color:"#777",textShadow:"0 1px 0 rgba(255,255,255,.06)",lineHeight:1}}>☷</span>
-            <span style={{fontSize:size*.1,color:"#55555555",letterSpacing:1,marginTop:2,fontFamily:"monospace"}}>YIN</span>
-            <div style={{position:"absolute",width:"82%",height:"82%",borderRadius:"50%",border:"1px solid rgba(255,255,255,.03)",top:"9%",left:"9%",pointerEvents:"none"}}/>
-          </div>
-        </div>
+    <div style={{width:size,height:size+12,display:"inline-flex",flexDirection:"column",alignItems:"center",gap:3}}>
+      <div style={{
+        width:size,height:size,borderRadius:"50%",
+        transform:`rotate(${wobble}deg) scaleX(${squeeze})${done?" scale(1)":""}`,
+        transition:done?"transform 0.3s ease-out":"none",
+        background:showHeadsFace
+          ?"radial-gradient(circle at 38% 30%,#f0d080,#c9a030 25%,#8b6914 55%,#5a4208 85%,#3a2a04)"
+          :"radial-gradient(circle at 38% 30%,#aaa,#777 25%,#444 55%,#222 85%,#111)",
+        border:`2px solid ${showHeadsFace?"#c9a03088":"#55555566"}`,
+        boxShadow:done?(isHeads?`0 0 18px ${G}44,inset 0 2px 3px rgba(255,255,255,.2),inset 0 -2px 3px rgba(0,0,0,.3)`:`0 0 10px #88888833,inset 0 2px 3px rgba(255,255,255,.1),inset 0 -2px 3px rgba(0,0,0,.3)`):"inset 0 2px 3px rgba(255,255,255,.1),inset 0 -2px 3px rgba(0,0,0,.2)",
+        display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",
+        position:"relative",overflow:"hidden",
+      }}>
+        <span style={{fontSize:size*.34,color:showHeadsFace?"#3a2a04":"#777",textShadow:showHeadsFace?"0 1px 0 rgba(255,255,255,.15)":"0 1px 0 rgba(255,255,255,.05)",lineHeight:1}}>{showHeadsFace?"☰":"☷"}</span>
+        <span style={{fontSize:size*.1,color:showHeadsFace?"#5a420866":"#55555544",letterSpacing:1,marginTop:2,fontFamily:"monospace"}}>{showHeadsFace?"YANG":"YIN"}</span>
+        {/* Emboss ring */}
+        <div style={{position:"absolute",width:"82%",height:"82%",borderRadius:"50%",border:`1px solid rgba(${showHeadsFace?"255,255,255":"255,255,255"},.05)`,top:"9%",left:"9%",pointerEvents:"none"}}/>
       </div>
-      {showVal&&done&&<div style={{fontSize:8,color:isHeads?G:"#888",fontFamily:"monospace",letterSpacing:1,textShadow:isHeads?`0 0 4px ${G}`:"none",textAlign:"center"}}>
+      {showVal&&done&&<div style={{fontSize:9,color:isHeads?G:"#999",fontFamily:"monospace",letterSpacing:1,textShadow:isHeads?`0 0 4px ${G}`:"none",textAlign:"center"}}>
         {result===3?"3 ☰":result===2?"2 ☷":isHeads?"H":"T"}
       </div>}
     </div>
@@ -89,7 +76,8 @@ export default function App(){
   const[activeTab,setActiveTab]=useState(0);// 0=iching,1=thc,2=decagram
   // Reading history (max 9)
   const[history,setHistory]=useState([]);
-  const[viewingHistory,setViewingHistory]=useState(null);// index into history or null
+  const[viewingHistory,setViewingHistory]=useState(null);
+  const questionRef=useRef("");// ref to avoid stale closure in castAll// index into history or null
 
   const saveToHistory=(q,hex,rel,tet,dec,hLines,tLines)=>{
     const entry={question:q,hexagram:hex,relatingHex:rel,tetragram:tet,decagram:dec,hexLines:hLines,tetLines:tLines,timestamp:Date.now()};
@@ -143,8 +131,8 @@ export default function App(){
           const hex2=lookupHexagram(hResults);
           const rel2=hResults.some(l=>l.changing)?lookupHexagram(hResults.map(l=>({...l,yang:l.changing?!l.yang:l.yang,changing:false}))):null;
           const tet2=lookupTHC(tResults.map(r=>r.value));
-          saveToHistory(question,hex2,rel2,tet2,dm2,[...hResults],[...tResults]);
-          setPhase("reading");setTimeout(()=>setShowReading(true),600);
+          saveToHistory(questionRef.current,hex2,rel2,tet2,dm2,[...hResults],[...tResults]);
+          setShowReading(true);setPhase("reading");
         },600);
         return;
       }
@@ -224,7 +212,7 @@ export default function App(){
         {phase==="question"&&<div style={{textAlign:"center",padding:"16px 0",animation:"fadeIn .6s ease-out"}}>
           <div style={{fontSize:9,color:"#0a5",letterSpacing:4,marginBottom:12}}>FORMULATE YOUR INQUIRY</div>
           <div style={{fontSize:12,color:"#0a8",lineHeight:1.8,marginBottom:14,maxWidth:440,margin:"0 auto 14px",textAlign:"left",padding:"0 8px"}}>The Decagram casts both the I Ching and the T'ai Hsüan Ching, then maps both readings onto the Numogram. Ask what you need to understand.</div>
-          <textarea value={question} onChange={e=>setQuestion(e.target.value)} placeholder="What do I need to understand about..." style={{width:"100%",maxWidth:440,height:72,background:"rgba(0,255,51,.03)",border:`1px solid ${G}40`,borderRadius:2,color:G,fontFamily:"monospace",fontSize:13,padding:12,resize:"none",outline:"none"}} onFocus={e=>e.target.style.borderColor=A} onBlur={e=>e.target.style.borderColor=G+"40"}/>
+          <textarea value={question} onChange={e=>{setQuestion(e.target.value);questionRef.current=e.target.value}} placeholder="What do I need to understand about..." style={{width:"100%",maxWidth:440,height:72,background:"rgba(0,255,51,.03)",border:`1px solid ${G}40`,borderRadius:2,color:G,fontFamily:"monospace",fontSize:13,padding:12,resize:"none",outline:"none"}} onFocus={e=>e.target.style.borderColor=A} onBlur={e=>e.target.style.borderColor=G+"40"}/>
           <div style={{marginTop:14}}><button onClick={castAll} style={{padding:"14px 36px",background:"transparent",border:`1px solid ${A}`,color:A,fontFamily:"monospace",fontSize:12,letterSpacing:5,cursor:"pointer",borderRadius:2,boxShadow:`0 0 15px ${A}18`}}>CAST THE DECAGRAM</button></div>
           <div style={{fontSize:9,color:"#0c8",marginTop:10,letterSpacing:2}}>6 I CHING + 4 THC THROWS ⌁ FULLY AUTOMATED</div>
         </div>}
@@ -417,18 +405,61 @@ export default function App(){
                 {decagram.activeSyzygies.map((s,i)=><div key={i} style={{fontSize:"clamp(13px,3.5vw,15px)",color:A,marginBottom:6,lineHeight:1.7}}>⟐ <strong>{s.name}</strong> ({s.pair[0]}::{s.pair[1]}) — {s.current} Current → Zone {s.tractor}</div>)}
               </div>}
 
-              {/* Primary demon */}
-              {decagram.primaryDemon&&<div style={{margin:"12px 0",padding:"16px",borderLeft:`3px solid ${A}`}}>
-                <div style={{fontSize:10,color:A,letterSpacing:4,marginBottom:10}}>THE DEMON AT THE JUNCTION</div>
-                <div style={{fontSize:"clamp(18px,5vw,24px)",color:A,textShadow:`0 0 8px ${A}`,marginBottom:4}}>{decagram.primaryDemon.demon.name}</div>
-                <div style={{fontSize:11,color:AD,letterSpacing:2}}>Mesh-{String(decagram.primaryDemon.demon.mesh).padStart(2,"0")} ⌁ {decagram.primaryDemon.demon.ns} ⌁ {decagram.primaryDemon.demon.type}</div>
-                {decagram.primaryDemon.demon.pitch&&<div style={{fontSize:10,color:"#0c8",marginTop:6}}>Pitch: {decagram.primaryDemon.demon.pitch}</div>}
-                {decagram.primaryDemon.demon.door&&<div style={{fontSize:10,color:"#0c8",marginTop:2}}>{decagram.primaryDemon.demon.door}{decagram.primaryDemon.demon.planet?` ⌁ ${decagram.primaryDemon.demon.planet}`:""}{decagram.primaryDemon.demon.spine?` ⌁ ${decagram.primaryDemon.demon.spine}`:""}</div>}
-                {decagram.primaryDemon.demon.decaCard&&<div style={{fontSize:10,color:"#0c8",marginTop:2}}>Decadology: {decagram.primaryDemon.demon.decaCard==="Joker"?"Joker (Syzygetic)":decagram.primaryDemon.demon.decaCard}</div>}
-                {decagram.primaryDemon.demon.gates&&<div style={{fontSize:10,color:"#0c8",marginTop:2}}>{decagram.primaryDemon.demon.gates}</div>}
-                <div style={{fontSize:10,color:A,marginTop:8,padding:"6px 0",borderTop:`1px solid ${A}20`}}>Route: [{decagram.primaryDemon.rite.route}] → Pth-{decagram.primaryDemon.rite.path}: {decagram.primaryDemon.rite.pathName}</div>
-                <div style={{fontSize:9,color:"#0c8",marginTop:2}}>Zone path: {decagram.primaryDemon.rite.route==="X"?"∞ (syzygy null-rite — time folds back on itself)":decagram.primaryDemon.rite.route.split("").join(" → ")}{decagram.primaryDemon.isSyzygetic?"":" ⌁ "+Math.round(decagram.primaryDemon.coverage*100)+"% zone coverage"}</div>
-              </div>}
+              {/* Primary demon — FULL DEMON CALL */}
+              {decagram.primaryDemon&&(()=>{const d=decagram.primaryDemon.demon;const r=decagram.primaryDemon.rite;return<div style={{margin:"12px 0",padding:"20px 16px",border:`1px solid ${A}40`,borderRadius:2,background:"rgba(255,184,0,.02)",boxShadow:`0 0 20px ${A}06`}}>
+                <div style={{textAlign:"center",marginBottom:14}}>
+                  <div style={{fontSize:9,color:A,letterSpacing:6,marginBottom:6}}>◈ DEMON CALL ◈</div>
+                  <div style={{fontSize:"clamp(22px,6vw,32px)",color:A,textShadow:`0 0 12px ${A},0 0 24px ${A}44`,letterSpacing:".1em"}}>{d.name}</div>
+                  <div style={{fontSize:12,color:AD,letterSpacing:3,marginTop:4}}>Mesh-{String(d.mesh).padStart(2,"0")} ⌁ {d.ns}</div>
+                  <div style={{fontSize:11,color:"#0c8",marginTop:2}}>{d.type}</div>
+                </div>
+                {/* Demon attributes grid */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,margin:"12px 0"}}>
+                  {d.pitch&&<div style={{padding:"8px 10px",border:`1px solid ${A}20`,borderRadius:2,background:"rgba(255,184,0,.01)"}}>
+                    <div style={{fontSize:8,color:AD,letterSpacing:2}}>PITCH</div>
+                    <div style={{fontSize:12,color:A,marginTop:2}}>{d.pitch}</div>
+                  </div>}
+                  {d.door&&<div style={{padding:"8px 10px",border:`1px solid ${A}20`,borderRadius:2,background:"rgba(255,184,0,.01)"}}>
+                    <div style={{fontSize:8,color:AD,letterSpacing:2}}>DOOR</div>
+                    <div style={{fontSize:12,color:A,marginTop:2}}>{d.door}</div>
+                  </div>}
+                  {d.planet&&<div style={{padding:"8px 10px",border:`1px solid ${A}20`,borderRadius:2,background:"rgba(255,184,0,.01)"}}>
+                    <div style={{fontSize:8,color:AD,letterSpacing:2}}>PLANET</div>
+                    <div style={{fontSize:12,color:A,marginTop:2}}>{d.planet}</div>
+                  </div>}
+                  {d.spine&&<div style={{padding:"8px 10px",border:`1px solid ${A}20`,borderRadius:2,background:"rgba(255,184,0,.01)"}}>
+                    <div style={{fontSize:8,color:AD,letterSpacing:2}}>SPINE</div>
+                    <div style={{fontSize:12,color:A,marginTop:2}}>{d.spine}</div>
+                  </div>}
+                  <div style={{padding:"8px 10px",border:`1px solid ${A}20`,borderRadius:2,background:"rgba(255,184,0,.01)"}}>
+                    <div style={{fontSize:8,color:AD,letterSpacing:2}}>ZONE PASSAGE</div>
+                    <div style={{fontSize:12,color:A,marginTop:2}}>{d.zone[0]} ↔ {d.zone[1]}</div>
+                  </div>
+                  {d.decaCard&&<div style={{padding:"8px 10px",border:`1px solid ${A}20`,borderRadius:2,background:"rgba(255,184,0,.01)"}}>
+                    <div style={{fontSize:8,color:AD,letterSpacing:2}}>DECADOLOGY</div>
+                    <div style={{fontSize:12,color:A,marginTop:2}}>{d.decaCard==="Joker"?"Joker (Syzygetic)":d.decaCard}</div>
+                  </div>}
+                </div>
+                {/* Gates */}
+                {d.gates&&<div style={{fontSize:11,color:"#0c8",margin:"8px 0",padding:"8px 10px",border:`1px solid ${A}15`,borderRadius:2}}>{d.gates}</div>}
+                {/* All rites */}
+                <div style={{margin:"12px 0"}}>
+                  <div style={{fontSize:9,color:A,letterSpacing:4,marginBottom:8}}>RITES</div>
+                  {d.rites.map((rt,ri)=><div key={ri} style={{padding:"8px 10px",marginBottom:4,borderLeft:`2px solid ${rt.route==="X"?A:rt.route==="?"?"#555":A+"80"}`,background:"rgba(255,184,0,.01)"}}>
+                    <div style={{fontSize:11,color:A}}>Rt-{rt.rt}: [{rt.route}]{rt.path?` → Pth-${rt.path}`:""}</div>
+                    {rt.pathName&&<div style={{fontSize:12,color:"#e8d4b0",marginTop:2}}>{rt.pathName}</div>}
+                    {rt.route!=="X"&&rt.route!=="?"&&<div style={{fontSize:9,color:"#0c8",marginTop:2}}>Zone path: {rt.route.split("").join(" → ")}</div>}
+                    {rt.route==="X"&&<div style={{fontSize:9,color:AD,marginTop:2}}>Syzygy null-rite — time folds back on itself</div>}
+                    {rt.route==="?"&&<div style={{fontSize:9,color:"#555",marginTop:2}}>Chaotic Xenodemon — route unknowable</div>}
+                  </div>)}
+                </div>
+                {/* Matched rite highlight */}
+                <div style={{padding:"10px",border:`1px solid ${A}30`,borderRadius:2,background:"rgba(255,184,0,.02)"}}>
+                  <div style={{fontSize:9,color:A,letterSpacing:3,marginBottom:4}}>ACTIVE RITE</div>
+                  <div style={{fontSize:13,color:A,textShadow:`0 0 4px ${A}44`}}>Pth-{r.path}: {r.pathName}</div>
+                  <div style={{fontSize:10,color:"#0c8",marginTop:2}}>{decagram.primaryDemon.isSyzygetic?"Syzygetic junction — both poles activated":"Coverage: "+Math.round(decagram.primaryDemon.coverage*100)+"% of route through active zones"}</div>
+                </div>
+              </div>})()}
 
               {/* Book of Paths reading */}
               {decagram.primaryDemon?.rite.path&&PATHS[decagram.primaryDemon.rite.path]&&<div style={{margin:"12px 0",padding:"16px",borderLeft:`3px solid ${A}60`,background:"rgba(255,184,0,.015)"}}>
@@ -446,7 +477,6 @@ export default function App(){
                   {decagram.dominantSystem==="Time-Circuit"?" — your situation is primarily governed by sequential, temporal forces. The I Ching reading carries the greater weight."
                     :decagram.dominantSystem==="Warp"?" — forces outside normal time are dominant. The alien patterns of the Warp (zones 3,6) are shaping your situation from beyond the visible flow."
                     :" — the abysmal depths of the Plex (zones 0,9) are active. Your situation is being shaped by forces at the absolute boundaries — origin and terminus, void and return."}
-                  {decagram.crossResonance&&<><br/><br/><strong style={{color:A}}>Cross-system resonance detected.</strong> Both the Time-Circuit and the Outer zones are strongly activated. This is rare — it means the temporal flow and the cryptic dimension are in direct communication. The full Numogram is speaking. The path identified below carries exceptional significance.</>}
                   {decagram.activeSyzygies.length>0&&<><br/><br/>{decagram.activeSyzygies.length} syzyg{decagram.activeSyzygies.length>1?"ies are":"y is"} energized: {decagram.activeSyzygies.map(s=>s.name).join(", ")}. These are the junction-points where the dual oracle's readings converge — where the manifest and the hidden meet.</>}
                   {decagram.primaryDemon&&<><br/><br/>The demon <strong style={{color:A}}>{decagram.primaryDemon.demon.name}</strong> ({decagram.primaryDemon.demon.ns}) traces the path of <em>{decagram.primaryDemon.rite.pathName}</em> through the activated zones{decagram.primaryDemon.isSyzygetic?" — a syzygetic null-rite, the most potent form of path where time folds back on itself":""}.  This is the route the complete Numogram reveals for your question.</>}
                 </div>
